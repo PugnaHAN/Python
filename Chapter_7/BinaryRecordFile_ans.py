@@ -85,11 +85,11 @@
 >>> test[3] = S.pack(b"Delta")
 >>> test[4] = S.pack(b"Echo")
 >>> del test[0]
->>> del test[3]
->>> del test[2]
+>>> for i in range(len(test)):
+...     print(struct.unpack("<8s", test[i]))
 >>> test.close()
 >>> os.path.getsize(filename)
-16
+32
 >>> os.remove(filename)
 """
 
@@ -138,6 +138,13 @@ class BinaryRecordFile:
         "Close the file"
         self.__fh.close()
 
+    def append(self, record):
+        "Append a record to the tail of file"
+        assert len(record) == self.__record_size, \
+               "the record size should be {0}".format(self.record_size)
+        self.__fh.seek(0, os.SEEK_END)
+        self.__fh.write(record)
+    
     def __seek_to_index(self, index):
         if index > self.size:
             raise OutOfIndexError("no record at index position {0}".format(
@@ -166,11 +173,8 @@ class BinaryRecordFile:
 
     def __delitem__(self, index):
         "Deletes the item at the given index position"
-        self.__seek_to_index(index)
-        self.__fh.seek(self.record_size, 1)
-        records = self.__fh.read((self.size - index - 1) * self.record_size)
-        self.__seek_to_index(index)
-        self.__fh.write(records)
+        for i in range(index, self.size - 1):
+            self[i] = self[i+1]
         self.__fh.truncate((self.size - 1) * self.__record_size)
 
     def __len__(self):
